@@ -1,3 +1,4 @@
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,15 +28,33 @@ public class WeatherCache {
      * @param city - city
      * @return actual weather info
      */
-    public WeatherInfo getWeatherInfo(String city) {
-        // should be implemented
-        return null;
+    public synchronized WeatherInfo getWeatherInfo(String city) {
+        WeatherInfo weatherInfo = cache.get(city);
+
+        if (weatherInfo == null) {
+            weatherInfo = weatherProvider.get(city);
+            if (weatherInfo != null) {
+                cache.put(city, weatherInfo);
+            }
+        }
+
+        if (weatherInfo != null && weatherInfo.getExpiryTime().isAfter(LocalDateTime.now())) {
+            weatherInfo = cache.get(city);
+        }
+
+        if (weatherInfo != null && weatherInfo.getExpiryTime().isBefore(LocalDateTime.now())) {
+            removeWeatherInfo(city);
+            weatherInfo = weatherProvider.get(city);
+            cache.put(city, weatherInfo);
+        }
+
+        return weatherInfo;
     }
 
     /**
      * Remove weather info from cache.
      **/
-    public void removeWeatherInfo(String city) {
-        // should be implemented
+    public synchronized void removeWeatherInfo(String city) {
+        cache.remove(city);
     }
 }
